@@ -150,6 +150,7 @@ function over(){
     POPS = [];
     ERR = 0;
     SUC = 0;
+    IS_START = false;
     $("#err").html(ERR);
     $("#suc").html(SUC);
     $("#b").html("");

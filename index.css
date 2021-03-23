@@ -5,6 +5,9 @@ body{
     padding: 0 0;
     margin: 0 0;
 }
+#b{
+    font-size: 30px;
+}
 .sp{
     position: absolute;
 }
