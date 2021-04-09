@@ -52,3 +52,11 @@ input {
     width: 100px;
     height: 100px;
 }
+#d{
+    position:absolute;
+    top: 40px;
+    left: 10px;
+    font-size: 12px;
+    text-align: left;
+    color: #fff;
+}

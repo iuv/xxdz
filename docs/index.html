@@ -33,11 +33,20 @@
         </div>
         <div id="b"></div>
         <div id="c"></div>
+        <div id="d">
+            <div>配置信息:</div>
+            <div>字母：<span id="studentKeyTxt"></span></div>
+            <div>数量：<span id="numTxt"></span></div>
+            <div>级别：<span id="levelTxt"></span></div>
+            <div>背景：<span id="colorTxt"></span></div>
+            <div>过关：<span id="sucMaxTxt"></span></div>
+            <div>失败：<span id="errMaxTxt"></span></div>
+        </div>
         <div id="win" class="win">
             <div style="margin-bottom: -30px;"><img src="./winner.png"/></div>
             <div style="color: brown;">恭喜过关！！</div>
             <button onclick="over()">结束</button>
-            <button onclick="nextLevel(true)">下一关</button>
+            <button onclick="nextLevel(true)">下一级</button>
             <button onclick="nextLevel(false)">再玩一次</button>
         </div>
         <div id="loser" class="win">

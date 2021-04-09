@@ -104,6 +104,7 @@ function getKey(){
 function stop(){
     clearInterval(T);
     clearInterval(TP);
+    $("#c").html("");
     IS_START = false;
 }
 
@@ -185,12 +186,24 @@ function save(){
     COLOR = $("#color").val();
     SUC_MAX = $("#sucMax").val();
     ERR_MAX = $("#errMax").val();
+    $("#studentKeyTxt").html(STR);
+    $("#levelTxt").html(LEVEL);
+    $("#numTxt").html(SIZE);
+    $("#colorTxt").html(COLOR);
+    $("#sucMaxTxt").html(SUC_MAX);
+    $("#errMaxTxt").html(ERR_MAX);
     $("body").css("background", COLOR);
     $("#set").hide();
 }
 
 $(document).ready(function(){
     MAX_HEIGHT = window.innerHeight-10;
+    $("#studentKeyTxt").html(STR);
+    $("#levelTxt").html(LEVEL);
+    $("#numTxt").html(SIZE);
+    $("#colorTxt").html(COLOR);
+    $("#sucMaxTxt").html(SUC_MAX);
+    $("#errMaxTxt").html(ERR_MAX);
     $(document).keyup(function(e){
         keyupHandel(e);
     });
