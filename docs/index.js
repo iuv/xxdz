@@ -95,8 +95,15 @@ function getObj(){
 
 // 获取键
 function getKey(){
-    var len = STR.length-1;
-    var key = STR.charAt(getRandom(len));
+    let tmp = STR;
+    KEYS.forEach(function(item){
+        tmp = tmp.replace(item.key, "");
+    });
+    if(tmp.length == 0){
+        tmp = STR;
+    }
+    var len = tmp.length-1;
+    var key = tmp.charAt(getRandom(len));
     return key;
 }
 
@@ -159,8 +166,15 @@ function over(){
 
 // 按键判断
 function keyupHandel(e){
+    var k = e.key.toUpperCase();
+    if(k == " "){
+        if(IS_START){
+            stop();
+        } else {
+            start();
+        }
+    }
     if(IS_START){
-        var k = e.key.toUpperCase();
         for(i = 0; i < KEYS.length; i++){
             if(KEYS[i].key == k){
                 removeOne(i, 1, 0);
