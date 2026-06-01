@@ -1,30 +1,34 @@
-// 全局变量
-var SIZE=6; //字母数量
-var STR = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; // 按键列表
-var LEVEL = 2; // 级别
-var TIME = 300; // 根据级别计算速度使用
-var T ; // 定时任务，下落使用
-var TPOP ; // 定时任务，爆炸使用
-var IS_START = false; // 判断游戏是否开始
-var MAX_HEIGHT; // 定义最大高度（超过算失败）
-var SUC = 0; // 成功的个数
-var ERR = 0; // 失败的个数
+var DEFAULT_STR = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+var DEFAULT_COLOR = "burlywood";
+var DEFAULT_SIZE = 3;
+var DEFAULT_LEVEL = 1;
+var DEFAULT_SUC_MAX = 20;
+var DEFAULT_ERR_MAX = 10;
+var SIZE = DEFAULT_SIZE;
+var STR = DEFAULT_STR;
+var LEVEL = DEFAULT_LEVEL;
+var TIME = 300;
+var T = null;
+var TPOP = null;
+var IS_START = false;
+var MAX_HEIGHT;
+var SUC = 0;
+var ERR = 0;
+var COMBO = 0;
 var KEYS = [];
 var POPS = [];
-var POPID = 0;// 保存播放爆炸的声音id(防止按的快时，播放不及时)
-var COLOR = "burlywood";// 背景色
-var SUC_MAX = 100;// 过关的数量
-var ERR_MAX = 50;// 失败的数量
+var POP_VISIBLE = false;
+var POPID = 0;
+var COLOR = DEFAULT_COLOR;
+var SUC_MAX = DEFAULT_SUC_MAX;
+var ERR_MAX = DEFAULT_ERR_MAX;
 
-//字母下落
 function run(){
     var html = "";
-    for(i=0; i < KEYS.length; i++){
+    for(var i=0; i < KEYS.length; i++){
         var o = KEYS[i];
-        o.top = o.top+2; 
-        // 判断是否是击中的要渲染爆炸
+        o.top = o.top+2;
         if(o.top>MAX_HEIGHT){
-            // 到底则删除
             removeOne(i, 0, 1);
         } else {
             html += getSpan(o);
@@ -32,139 +36,224 @@ function run(){
     }
     $("#b").html(html);
 }
-// 处理爆炸
+
 function pop(){
+    if(POPS.length == 0){
+        if(POP_VISIBLE){
+            $("#c").html("");
+            POP_VISIBLE = false;
+        }
+        return;
+    }
     var tmp = POPS;
     POPS = [];
     var html = "";
-    for(i=0; i < tmp.length; i++){
+    for(var i=0; i < tmp.length; i++){
         var o = tmp[i];
         html += getPopSpan(o);
     }
     $("#c").html(html);
+    POP_VISIBLE = true;
 }
 
-// 获取 字母span
 function getSpan(c){
     return "<span class='sp' style='background-color:"+COLOR+";left:"+c.left+"px; top:"+c.top+"px;'>"+c.key+"</span>";
 }
 
-// 获取爆炸span
 function getPopSpan(c){
-    // 爆炸声
-    POPID = (POPID+1)%5
-    document.getElementById("popSing"+POPID).play();
+    POPID = (POPID+1)%5;
+    var player = document.getElementById("popSing"+POPID);
+    if(player){
+        var playTask = player.play();
+        if(playTask && playTask.catch){
+            playTask.catch(function(){});
+        }
+    }
     return "<span class='sp' style='left:"+c.left+"px; top:"+c.top+"px;'><img src='./bz.png' class='spimg' /></span>";
 }
-// 随机位置
+
 function getLeft(){
-    return 200+Math.round(Math.random()*600);  
+    var width = window.innerWidth || document.documentElement.clientWidth || 800;
+    var minLeft = width > 700 ? 200 : 10;
+    var maxLeft = Math.max(minLeft, width - 50);
+    return minLeft + getRandom(maxLeft - minLeft);
 }
+
 function getRandom(i){
     return Math.round(Math.random()*i);
 }
-// 开始游戏
+
+function applyLevelConfig(){
+    SIZE = Math.min(DEFAULT_SIZE + Math.floor((LEVEL - 1) / 2), 8);
+    SUC_MAX = DEFAULT_SUC_MAX + (LEVEL - 1) * 10;
+    ERR_MAX = DEFAULT_ERR_MAX + Math.floor((LEVEL - 1) * 2);
+}
+
+function getLevelTime(){
+    return Math.max(36, 180 - (LEVEL - 1) * 14);
+}
+
+function setStatus(text){
+    $("#status").text(text).toggle(!!text);
+}
+
+function updateScore(){
+    $("#err").text(ERR);
+    $("#suc").text(SUC);
+    $("#combo").text(COMBO);
+}
+
+function getHitJudge(o){
+    var topLine = MAX_HEIGHT / 3;
+    var middleLine = topLine * 2;
+    if(o.top <= topLine){
+        return {text: "PERFECT", type: "perfect"};
+    }
+    if(o.top <= middleLine){
+        return {text: "GREAT", type: "great"};
+    }
+    return {text: "COOL", type: "cool"};
+}
+
+function showJudge(text, type){
+    var target = $("#judge");
+    target.removeClass("perfect great cool miss show").addClass(type).text(text);
+    target[0].offsetWidth;
+    target.addClass("show");
+}
+
+function updateComboFx(){
+    var target = $("#comboFx");
+    if(COMBO <= 0){
+        target.removeClass("show").empty();
+        return;
+    }
+    target.removeClass("show").html("<span>"+COMBO+"</span><small>COMBO</small>");
+    target[0].offsetWidth;
+    target.addClass("show");
+}
+
 function start(){
-    if(IS_START){ return }
-    // 初始字母
+    if(IS_START){ return; }
+    setStatus("");
     var html = $("#b").html();
-    for(i=KEYS.length; i<SIZE; i++){
+    for(var i=KEYS.length; i<SIZE; i++){
         var obj = getObj();
         html += getSpan(obj);
     }
     $("#b").html(html);
-    TIME = 300/LEVEL/2
+    TIME = getLevelTime();
     T = setInterval(run, TIME);
-    TP = setInterval(pop, 300);
+    TPOP = setInterval(pop, 300);
     IS_START = true;
 }
-// 下一关或者继续本关
+
 function nextLevel(t){
     if(t){
         LEVEL++;
+        applyLevelConfig();
+        renderConf();
     }
     over();
     start();
 }
-// 获取字母对象
+
 function getObj(){
     var obj =  {"key": getKey(), "left":getLeft(), "top": 36, "suc": 0};
     KEYS.push(obj);
     return obj;
 }
 
-// 获取键
 function getKey(){
-    let tmp = STR;
+    var usedKeys = {};
+    var tmp = "";
     KEYS.forEach(function(item){
-        tmp = tmp.replace(item.key, "");
+        usedKeys[item.key] = true;
     });
+    for(var i = 0; i < STR.length; i++){
+        var key = STR.charAt(i);
+        if(!usedKeys[key]){
+            tmp += key;
+        }
+    }
     if(tmp.length == 0){
         tmp = STR;
     }
     var len = tmp.length-1;
-    var key = tmp.charAt(getRandom(len));
-    return key;
+    return tmp.charAt(getRandom(len));
 }
 
-// 停止游戏
 function stop(){
     clearInterval(T);
-    clearInterval(TP);
+    clearInterval(TPOP);
+    T = null;
+    TPOP = null;
     $("#c").html("");
     IS_START = false;
+    setStatus("已暂停，按空格继续");
 }
 
-// 删除一个击中或者到底，再添加一个
 function removeOne(i, suc, err){
-    // 删除一个
     ERR += err;
     SUC += suc;
-    $("#err").html(ERR);
-    $("#suc").html(SUC);
-    // 如果击中添加爆炸效果
+    if(suc){
+        COMBO++;
+    } else {
+        COMBO = 0;
+    }
+    updateScore();
+    updateComboFx();
+    var judge = suc ? getHitJudge(KEYS[i]) : {text: "MISS", type: "miss"};
+    showJudge(judge.text, judge.type);
+    var isFinished = false;
     if(suc){
         POPS.push(KEYS[i]);
         if(SUC >= SUC_MAX){
-            // 本关结束
             win();
+            isFinished = true;
         }
     } else {
         if(ERR >= ERR_MAX){
-            // 本关结束
             loser();
+            isFinished = true;
         }
     }
     KEYS.splice(i, 1);
-    // 再添加一个
-    getObj();
+    if(!isFinished){
+        getObj();
+    }
 }
 
-// 胜利弹框
 function win(){
     stop();
+    setStatus("本关完成，可以进入下一级");
     $("#win").show();
 }
-// 失败弹窗
+
 function loser(){
     stop();
+    setStatus("挑战失败，再练一次吧");
     $("#loser").show();
 }
-// 结束游戏 清空数据
+
 function over(){
+    stop();
     $("#win").hide();
     $("#loser").hide();
     KEYS = [];
     POPS = [];
+    POP_VISIBLE = false;
     ERR = 0;
     SUC = 0;
-    IS_START = false;
-    $("#err").html(ERR);
-    $("#suc").html(SUC);
+    COMBO = 0;
+    updateScore();
+    updateComboFx();
+    $("#judge").removeClass("show perfect great cool miss").empty();
     $("#b").html("");
+    $("#c").html("");
+    setStatus("按空格或点击开始");
 }
 
-// 按键判断
 function keyupHandel(e){
     var k = e.key.toUpperCase();
     if(k == " "){
@@ -173,9 +262,10 @@ function keyupHandel(e){
         } else {
             start();
         }
+        return;
     }
     if(IS_START){
-        for(i = 0; i < KEYS.length; i++){
+        for(var i = 0; i < KEYS.length; i++){
             if(KEYS[i].key == k){
                 removeOne(i, 1, 0);
                 break;
@@ -183,7 +273,9 @@ function keyupHandel(e){
         }
     }
 }
+
 function setConf(){
+    setStatus("");
     $("#studentKey").val(STR);
     $("#level").val(LEVEL);
     $("#num").val(SIZE);
@@ -192,33 +284,73 @@ function setConf(){
     $("#errMax").val(ERR_MAX);
     $("#set").show();
 }
+
+function normalizeKeys(value){
+    var result = "";
+    var keys = $.trim(value || "").toUpperCase().replace(/[^A-Z]/g, "");
+    for(var i = 0; i < keys.length; i++){
+        if(result.indexOf(keys.charAt(i)) < 0){
+            result += keys.charAt(i);
+        }
+    }
+    return result || DEFAULT_STR;
+}
+
+function getNumberValue(value, fallback, min, max){
+    var num = parseInt(value, 10);
+    if(isNaN(num)){
+        return fallback;
+    }
+    num = Math.max(min, num);
+    if(max !== undefined){
+        num = Math.min(max, num);
+    }
+    return num;
+}
+
+function normalizeColor(value){
+    var color = $.trim(value || "");
+    var el = document.createElement("div");
+    el.style.backgroundColor = "";
+    el.style.backgroundColor = color;
+    return el.style.backgroundColor || DEFAULT_COLOR;
+}
+
+function renderConf(){
+    $("#studentKeyTxt").text(STR);
+    $("#levelTxt").text(LEVEL);
+    $("#numTxt").text(SIZE);
+    $("#colorTxt").text(COLOR);
+    $("#sucMaxTxt").text(SUC_MAX);
+    $("#errMaxTxt").text(ERR_MAX);
+}
+
 function save(){
-    STR = $("#studentKey").val();
-    LEVEL = $("#level").val();
-    if(LEVEL == 0){ LEVEL = 1 } 
-    SIZE = $("#num").val();
-    COLOR = $("#color").val();
-    SUC_MAX = $("#sucMax").val();
-    ERR_MAX = $("#errMax").val();
-    $("#studentKeyTxt").html(STR);
-    $("#levelTxt").html(LEVEL);
-    $("#numTxt").html(SIZE);
-    $("#colorTxt").html(COLOR);
-    $("#sucMaxTxt").html(SUC_MAX);
-    $("#errMaxTxt").html(ERR_MAX);
+    STR = normalizeKeys($("#studentKey").val());
+    LEVEL = getNumberValue($("#level").val(), DEFAULT_LEVEL, 1, 100);
+    SIZE = getNumberValue($("#num").val(), DEFAULT_SIZE, 1, 50);
+    COLOR = normalizeColor($("#color").val());
+    SUC_MAX = getNumberValue($("#sucMax").val(), DEFAULT_SUC_MAX, 1, 10000);
+    ERR_MAX = getNumberValue($("#errMax").val(), DEFAULT_ERR_MAX, 1, 10000);
+    over();
+    renderConf();
     $("body").css("background", COLOR);
     $("#set").hide();
 }
 
-$(document).ready(function(){
+function updateMaxHeight(){
     MAX_HEIGHT = window.innerHeight-10;
-    $("#studentKeyTxt").html(STR);
-    $("#levelTxt").html(LEVEL);
-    $("#numTxt").html(SIZE);
-    $("#colorTxt").html(COLOR);
-    $("#sucMaxTxt").html(SUC_MAX);
-    $("#errMaxTxt").html(ERR_MAX);
+}
+
+$(document).ready(function(){
+    updateMaxHeight();
+    renderConf();
+    updateScore();
+    setStatus("按空格或点击开始");
     $(document).keyup(function(e){
         keyupHandel(e);
+    });
+    $(window).resize(function(){
+        updateMaxHeight();
     });
 });
